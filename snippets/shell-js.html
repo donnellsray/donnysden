@@ -1,0 +1,170 @@
+<script id="dd-shell-js">
+/* Donny's Den: shell behaviour. Lives in Elementor > Custom Code > "Donny's Den: shell JS".
+   Reads the room order from the sidebar, so adding or reordering rooms there updates
+   previous/next, the ornament label and the mobile chip automatically. */
+(function () {
+  'use strict';
+  var d = document, root = d.documentElement;
+  function $(s, r) { return (r || d).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || d).querySelectorAll(s)); }
+  function path(u) { try { return new URL(u, location.href).pathname.replace(/\/+$/, '') + '/'; } catch (e) { return u; } }
+  function text(el) { return el ? el.textContent.trim() : ''; }
+  var FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  function visible(el) { return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length); }
+
+  /* Focus trap shared by the Rooms sheet and the popups */
+  function trap(container, onEscape) {
+    function onKey(e) {
+      if (e.key === 'Escape' && onEscape) { e.preventDefault(); onEscape(); return; }
+      if (e.key !== 'Tab') return;
+      var items = $$(FOCUSABLE, container).filter(visible);
+      if (!items.length) { e.preventDefault(); return; }
+      var first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && d.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && d.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+    container.addEventListener('keydown', onKey);
+    return function release() { container.removeEventListener('keydown', onKey); };
+  }
+
+  /* 1. Rooms, current room, previous/next */
+  var here = path(location.href);
+  var nav = $('#dd-nav');
+  var sheetLinks = $$('#dd-rooms-panel a[href]');
+  var fullNames = {};
+  sheetLinks.forEach(function (a) { fullNames[path(a.href)] = text(a.querySelector('span, p')); });
+  var rooms = (nav ? $$('a[href]', nav) : sheetLinks).map(function (a) {
+    var spans = $$('span, p', a);
+    return { el: a, path: path(a.href), href: a.getAttribute('href'), short: text(spans[0]), label: text(spans[1]) };
+  });
+  if (nav) nav.setAttribute('aria-label', 'Rooms');
+  var side = $('#dd-sidebar'); if (side) side.setAttribute('aria-label', 'Rooms');
+  var idx = -1; rooms.forEach(function (r, i) { if (r.path === here) idx = i; });
+  function markCurrent(els) { els.forEach(function (a) { if (path(a.href) === here) { a.classList.add('dd-selected'); a.setAttribute('aria-current', 'page'); } }); }
+  if (nav) markCurrent($$('a[href]', nav));
+  markCurrent(sheetLinks);
+  if (idx > -1) {
+    var cur = rooms[idx], prev = rooms[(idx + rooms.length - 1) % rooms.length], next = rooms[(idx + 1) % rooms.length];
+    var full = function (r) { return fullNames[r.path] || r.short; };
+    [['#dd-prev', prev, 'Previous room: '], ['#dd-m-prev', prev, 'Previous room: '], ['#dd-next', next, 'Next room: '], ['#dd-m-next', next, 'Next room: ']].forEach(function (x) {
+      var el = $(x[0]); if (!el) return;
+      el.setAttribute('href', x[1].href); el.setAttribute('aria-label', x[2] + full(x[1]));
+      var sr = $('.dd-sr-only', el); if (sr) sr.textContent = x[2] + full(x[1]);
+    });
+    var orn = $('#dd-orn-room'); if (orn) orn.textContent = cur.short;
+    var chip = $$('#dd-m-room span, #dd-m-room p');
+    if (chip[0]) chip[0].textContent = cur.short;
+    if (chip[1]) chip[1].textContent = cur.label;
+  }
+  var ornament = $('#dd-ornament-pill'); if (ornament) { ornament.setAttribute('role', 'toolbar'); ornament.setAttribute('aria-label', 'Room controls'); }
+  var mbar = $('#dd-mbar'); if (mbar) mbar.setAttribute('aria-label', 'House');
+
+  /* 2. Hide UI (remembered for the session) */
+  var hideBtns = [['#dd-hide', '#dd-hide-label'], ['#dd-m-hide', '#dd-m-hide-label']];
+  function setHidden(on) {
+    root.classList.toggle('dd-ui-hidden', on);
+    try { sessionStorage.setItem('dd-ui-hidden', on ? '1' : '0'); } catch (e) {}
+    hideBtns.forEach(function (b) {
+      var btn = $(b[0]), lab = $(b[1]); if (!btn) return;
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.classList.toggle('dd-selected', on);
+      if (lab) lab.textContent = on ? 'Show UI' : 'Hide UI';
+    });
+  }
+  hideBtns.forEach(function (b) { var btn = $(b[0]); if (btn) { btn.setAttribute('type', 'button'); btn.addEventListener('click', function () { setHidden(!root.classList.contains('dd-ui-hidden')); }); } });
+  setHidden(root.classList.contains('dd-ui-hidden'));
+
+  /* 3. Mobile Rooms sheet (a real dialog) */
+  var sheet = $('#dd-rooms-sheet'), panel = $('#dd-rooms-panel'), opener = $('#dd-rooms-open'), closer = $('#dd-rooms-close');
+  if (sheet && panel && opener) {
+    var release = null;
+    panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-labelledby', 'dd-rooms-title');
+    opener.setAttribute('type', 'button'); opener.setAttribute('aria-expanded', 'false'); opener.setAttribute('aria-controls', 'dd-rooms-panel');
+    var closeSheet = function () {
+      sheet.classList.remove('is-open'); opener.setAttribute('aria-expanded', 'false'); opener.classList.remove('dd-selected');
+      if (release) { release(); release = null; } opener.focus();
+    };
+    opener.addEventListener('click', function () {
+      sheet.classList.add('is-open'); opener.setAttribute('aria-expanded', 'true'); opener.classList.add('dd-selected');
+      release = trap(panel, closeSheet);
+      var target = $('[aria-current="page"]', panel) || closer; if (target) target.focus();
+    });
+    if (closer) { closer.setAttribute('type', 'button'); closer.addEventListener('click', closeSheet); }
+    sheet.addEventListener('click', function (e) { if (e.target === sheet) closeSheet(); });
+  }
+
+  /* 4. Living Room: chips switch the row of cards */
+  var chips = $$('#dd-chips [id^="dd-chip-"]');
+  if (chips.length) {
+    $('#dd-chips').setAttribute('role', 'group'); $('#dd-chips').setAttribute('aria-label', 'Latest from a room');
+    var pick = function (key) {
+      chips.forEach(function (c) { var on = c.id === 'dd-chip-' + key; c.classList.toggle('dd-selected', on); c.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+      $$('[id^="dd-cards-"]').forEach(function (g) { g.classList.toggle('is-active', g.id === 'dd-cards-' + key); });
+    };
+    chips.forEach(function (c) { c.setAttribute('type', 'button'); c.addEventListener('click', function () { pick(c.id.replace('dd-chip-', '')); }); });
+    var start = chips.filter(function (c) { return c.classList.contains('dd-selected'); })[0] || chips[0];
+    pick(start.id.replace('dd-chip-', ''));
+  }
+
+  /* 5. Popups (Doorbell, Porch Light): dialog semantics, focus trap, close button,
+        focus back to the trigger, Budget field only for Brand collab */
+  var lastTrigger = null;
+  ['#dd-ring', '#dd-subscribe', '#dd-m-subscribe'].forEach(function (s) {
+    var t = $(s); if (!t) return;
+    t.setAttribute('type', 'button'); t.setAttribute('aria-haspopup', 'dialog');
+    t.addEventListener('click', function () { lastTrigger = t; });
+  });
+  function budgetToggle(scope) {
+    var group = $('.elementor-field-group-budget', scope); if (!group) return;
+    var radios = $$('input[type="radio"]', $('.elementor-field-group-reason', scope) || scope);
+    var sync = function () { var c = radios.filter(function (r) { return r.checked; })[0]; group.classList.toggle('dd-off', !c || c.value !== 'Brand collab'); };
+    radios.forEach(function (r) { r.addEventListener('change', sync); }); sync();
+  }
+  if (window.jQuery) {
+    var releases = {};
+    jQuery(d).on('elementor/popup/show', function (e, id, instance) {
+      var modal = d.getElementById('elementor-popup-modal-' + id); if (!modal) return;
+      var box = $('.dialog-widget-content', modal) || modal;
+      var title = $('#dd-bell-title, #dd-porch-title', modal);
+      box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true');
+      if (title) box.setAttribute('aria-labelledby', title.id);
+      var hide = function () { try { instance.getModal().hide(); } catch (err) { jQuery(modal).find('.dialog-close-button').trigger('click'); } };
+      $$('#dd-bell-close, #dd-porch-close', modal).forEach(function (b) { b.setAttribute('type', 'button'); b.onclick = hide; });
+      if (releases[id]) releases[id]();
+      releases[id] = trap(box, hide);
+      budgetToggle(modal);
+      setTimeout(function () { var f = $('input:not([type="hidden"]):not([type="radio"]), textarea', box) || $(FOCUSABLE, box); if (f) f.focus(); }, 60);
+    });
+    jQuery(d).on('elementor/popup/hide', function (e, id) {
+      if (releases[id]) { releases[id](); delete releases[id]; }
+      if (lastTrigger) { lastTrigger.focus(); lastTrigger = null; }
+    });
+  }
+
+  /* 6. Plain buttons built from Elementor containers get a real button type */
+  $$('button[id^="dd-"]').forEach(function (b) { if (!b.hasAttribute('type')) b.setAttribute('type', 'button'); });
+  /* 7. Skip link goes to the room window (the theme's #content does not exist here) */
+  var skip = $('.skip-link'), win = $('#dd-window') || $('#dd-door');
+  if (skip && win) { skip.setAttribute('href', '#' + win.id); if (!win.hasAttribute('tabindex')) win.setAttribute('tabindex', '-1'); }
+  /* 8. Front Door: without View Transitions, fade the panel out before going inside */
+  var door = $('#dd-door');
+  if (door && !('startViewTransition' in d) && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+    $$('a[href]', door).forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank') return;
+        e.preventDefault(); door.classList.add('dd-leaving');
+        setTimeout(function () { location.href = a.href; }, 260);
+      });
+    });
+  }
+  /* 9. Links page: "All my links" opens and closes the link list */
+  var lt = $('#dd-links-toggle'), ll = $('#dd-links-list');
+  if (lt && ll) {
+    lt.setAttribute('type', 'button'); lt.setAttribute('aria-controls', 'dd-links-list'); lt.setAttribute('aria-expanded', 'false');
+    lt.addEventListener('click', function () {
+      var open = !ll.classList.contains('dd-open');
+      ll.classList.toggle('dd-open', open); lt.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+})();
+</script>

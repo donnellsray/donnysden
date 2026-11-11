@@ -1,0 +1,16 @@
+import { createRequire } from "node:module";
+const require = createRequire("/opt/node22/lib/node_modules/"); const { chromium } = require("playwright");
+const S = ".";
+const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", proxy: { server: process.env.HTTPS_PROXY } });
+const p = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+const errs = []; p.on("pageerror", e => errs.push(e.message));
+await p.goto("https://donnysden.1wp.site/links/", { waitUntil: "networkidle" }); await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(1000);
+const st = () => p.evaluate(() => { const t = document.querySelector("#dd-links-toggle"), l = document.querySelector("#dd-links-list"); return { tag: t?.tagName, type: t?.type, exp: t?.getAttribute("aria-expanded"), listShown: l ? getComputedStyle(l).display : null, h: document.documentElement.scrollHeight, avatar: document.querySelector('[data-id="lk-avatar"] img, img[class*="lk-avatar"]')?.currentSrc?.split("/").pop() }; });
+console.log("closed", JSON.stringify(await st()));
+for (let y = 0; y < 2400; y += 400) { await p.mouse.wheel(0, 400); await p.waitForTimeout(150); } await p.waitForTimeout(800); await p.screenshot({ path: `${S}/shots/lk-closed.png`, fullPage: true });
+await p.focus("#dd-links-toggle"); await p.keyboard.press("Enter"); await p.waitForTimeout(400);
+console.log("open(kbd)", JSON.stringify(await st()));
+await p.screenshot({ path: `${S}/shots/lk-open.png`, fullPage: true });
+await p.click("#dd-links-toggle"); await p.waitForTimeout(300);
+console.log("closed(click)", JSON.stringify(await st()), errs);
+await b.close();

@@ -1,0 +1,193 @@
+<style id="dd-shell-css">
+/* ==========================================================
+   Donny's Den: shared shell styles
+   Lives in Elementor > Custom Code > "Donny's Den: shell CSS".
+   Content styling (type, buttons, tiles, glass) is in Elementor
+   Global Classes named dd-*. This file only holds what Elementor
+   cannot express natively: tokens, focus ring, fallbacks, motion.
+   ========================================================== */
+
+/* 1. Tokens */
+:root{
+  --dd-ink:#F6F1EA;
+  --dd-ink-2:rgba(246,241,234,.80);
+  --dd-ink-3:rgba(246,241,234,.72);
+  --dd-on-cream:#241E19;
+  --dd-focus:#F2D39B;
+  --dd-ground:#1D1814;
+  --dd-glass:rgba(38,32,27,.72);
+  --dd-glass-border:rgba(255,255,255,.14);
+  --dd-glass-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 24px 60px rgba(10,7,5,.35);
+  --dd-surface:rgba(255,255,255,.06);
+  --dd-surface-hover:rgba(255,255,255,.12);
+  --dd-surface-border:rgba(255,255,255,.12);
+  --dd-serif:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --dd-sans:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --dd-ease:cubic-bezier(.2,.7,.2,1);
+}
+
+/* 2. Base */
+html,body{background:var(--dd-ground);color:var(--dd-ink)}
+body{font-family:var(--dd-sans);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+
+/* 3. Glass: Safari prefix + solid fallback where blur is unsupported */
+.dd-glass{-webkit-backdrop-filter:blur(36px) saturate(140%)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .dd-glass{background-color:rgba(38,32,27,.9)!important}
+}
+
+/* 4. Selected state (nav pills, chips, reason pills) */
+.dd-chip[aria-pressed="true"],.dd-chip.is-selected,
+.dd-pill[aria-current="page"],.dd-pill.is-selected{
+  background:var(--dd-ink)!important;color:var(--dd-on-cream)!important;border-color:var(--dd-ink)!important
+}
+.dd-pill[aria-current="page"] *,.dd-chip[aria-pressed="true"] *{color:inherit!important}
+
+/* 4b. Elementor prints Global Classes in list order, so make the selected
+   class win over whichever base class (chip, pill, row) it is paired with */
+.elementor .dd-selected.dd-selected{background-color:var(--dd-ink);color:var(--dd-on-cream);border-color:var(--dd-ink)}
+.elementor .dd-selected.dd-selected *{color:inherit}
+
+/* 5. Focus ring on every interactive element */
+a:focus-visible,button:focus-visible,[role="button"]:focus-visible,
+input:focus-visible,textarea:focus-visible,select:focus-visible,
+summary:focus-visible,[tabindex]:not([tabindex="-1"]):focus-visible{
+  outline:2px solid var(--dd-focus)!important;outline-offset:2px!important
+}
+
+/* 6. Never scroll sideways */
+html,body{overflow-x:clip}
+
+/* 7. Reduced motion */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+/* 8. Room pages: the page never scrolls; sidebar, window and ornament are fixed
+   (their positions live on the elements in the Den shell templates) */
+body:has(#dd-window){overflow:hidden;height:100vh;height:100dvh}
+
+/* 9. Screen-reader-only text (labels for icon buttons) */
+.dd-sr-only.dd-sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;opacity:1!important}
+
+/* 10. Icons follow the text color; buttons look like their class, not the browser */
+.dd-icon-20 svg,.dd-icon-18 svg,[id^="dd-"] .e-svg-base svg{width:100%;height:100%;display:block}
+button.dd-pill,button.dd-icon-btn,button.dd-btn-primary,button.dd-btn-quiet,button.dd-chip,button[id^="dd-"]{font:inherit;-webkit-appearance:none;appearance:none;cursor:pointer}
+.dd-pill,.dd-pill:hover,.dd-icon-btn,.dd-icon-btn:hover{color:var(--dd-ink)}
+
+/* 11. Window arrival: the room shows first, then the window settles in */
+@keyframes dd-arrive{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+.dd-js #dd-window{animation:dd-arrive 600ms var(--dd-ease) 220ms both}
+
+/* 12. Hide UI: sidebar, window and the mobile room chip fade out; ornament stays */
+#dd-sidebar,#dd-window,#dd-mtop>:first-child{transition:opacity 500ms ease,transform 500ms ease}
+.dd-ui-hidden #dd-sidebar,.dd-ui-hidden #dd-window,.dd-ui-hidden #dd-mtop>:first-child{opacity:0!important;transform:scale(.98);pointer-events:none;animation:none}
+
+/* 13. Rooms sheet and Living Room card sets are hidden until chosen (never in the editor) */
+body:not(.elementor-editor-active) #dd-rooms-sheet:not(.is-open){display:none}
+body:not(.elementor-editor-active) [id^="dd-cards-"]{display:none}
+body:not(.elementor-editor-active) [id^="dd-cards-"].is-active,html:not(.dd-js) body:not(.elementor-editor-active) #dd-cards-study{display:grid}
+#dd-chips{scrollbar-width:none}#dd-chips::-webkit-scrollbar{display:none}
+#dd-chips>*{flex:none}
+
+/* 14. Dialogs (Elementor popups): the glass panel is the dialog */
+.dd-popup .dialog-widget-content{background:transparent!important;box-shadow:none!important;overflow:visible}
+.dd-popup .dialog-message{overflow:visible}
+.dd-popup .elementor-field-textual{background:rgba(255,255,255,.08);min-height:46px;color:var(--dd-ink)}
+.dd-popup textarea.elementor-field-textual{min-height:0}
+.dd-popup .elementor-field-textual::placeholder{color:rgba(246,241,234,.55)}
+.dd-popup .elementor-field-group-reason>.elementor-field-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.dd-popup .elementor-field-type-radio .elementor-field-subgroup{display:flex;flex-wrap:wrap;gap:8px}
+.dd-popup .elementor-field-type-radio .elementor-field-option{margin:0!important;position:relative}
+.dd-popup .elementor-field-type-radio input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.dd-popup .elementor-field-type-radio .elementor-field-option label{display:inline-flex;align-items:center;min-height:40px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:var(--dd-ink);font-size:14px;cursor:pointer}
+.dd-popup .elementor-field-type-radio input:checked+label{background:var(--dd-ink)!important;color:var(--dd-on-cream)!important;border-color:var(--dd-ink)!important}
+.dd-popup .elementor-field-type-radio input:focus-visible+label{outline:2px solid var(--dd-focus);outline-offset:2px}
+.dd-popup .elementor-field-group-budget.dd-off{display:none}
+.dd-popup .elementor-button{min-height:44px}
+.dd-popup .elementor-message{font-size:14px}
+
+/* 15. Room-to-room crossfade (cross-document View Transitions) */
+@view-transition{navigation:auto}
+#dd-bg{view-transition-name:dd-bg}
+body:has(#dd-bg-study) #dd-bg{view-transition-name:none}
+#dd-bg-study{view-transition-name:dd-bg}
+#dd-sidebar{view-transition-name:dd-sidebar}
+#dd-ornament-pill{view-transition-name:dd-ornament}
+#dd-mtop{view-transition-name:dd-mtop}
+#dd-mbar{view-transition-name:dd-mbar}
+::view-transition-group(dd-bg),::view-transition-old(dd-bg),::view-transition-new(dd-bg){animation-duration:900ms;animation-timing-function:ease}
+::view-transition-old(root),::view-transition-new(root){animation-duration:300ms}
+
+/* 17. Line icons: Elementor's SVG widget forces fill:currentColor; stroked icons stay unfilled */
+.e-svg-base svg[stroke]{fill:none}
+/* 18. Only the ornament pill catches clicks, not its full-width row */
+#dd-ornament{pointer-events:none}#dd-ornament-pill{pointer-events:auto}
+
+/* 19. Small text links still get a 44px tap target */
+.dd-wordmark a,a.dd-wordmark,[data-id$="-rules"] a,a[data-id$="-rules"]{display:inline-flex;align-items:center;min-height:44px}
+
+/* 20. Phones: placeholder backgrounds swap to the prototype's portrait versions.
+   Matches only the placeholder files, so a real featured photo is never replaced. */
+@media (max-width:900px){
+  #dd-bg img[src*="dd-placeholder-frontdoor"],#dd-bg-study img[src*="dd-placeholder-frontdoor"]{content:url(https://donnysden.1wp.site/wp-content/uploads/dd-placeholders-m/dd-placeholder-m-frontdoor.webp)}
+  #dd-bg img[src*="dd-placeholder-living"],#dd-bg-study img[src*="dd-placeholder-living"]{content:url(https://donnysden.1wp.site/wp-content/uploads/dd-placeholders-m/dd-placeholder-m-living.webp)}
+  #dd-bg img[src*="dd-placeholder-hallway"],#dd-bg-study img[src*="dd-placeholder-hallway"]{content:url(https://donnysden.1wp.site/wp-content/uploads/dd-placeholders-m/dd-placeholder-m-hallway.webp)}
+  #dd-bg img[src*="dd-placeholder-screening"],#dd-bg-study img[src*="dd-placeholder-screening"]{content:url(https://donnysden.1wp.site/wp-content/uploads/dd-placeholders-m/dd-placeholder-m-screening.webp)}
+  #dd-bg img[src*="dd-placeholder-study"],#dd-bg-study img[src*="dd-placeholder-study"]{content:url(https://donnysden.1wp.site/wp-content/uploads/dd-placeholders-m/dd-placeholder-m-study.webp)}
+  #dd-bg img[src*="dd-placeholder-kitchen"],#dd-bg-study img[src*="dd-placeholder-kitchen"]{content:url(https://donnysden.1wp.site/wp-content/uploads/dd-placeholders-m/dd-placeholder-m-kitchen.webp)}
+  #dd-bg img[src*="dd-placeholder-office"],#dd-bg-study img[src*="dd-placeholder-office"]{content:url(https://donnysden.1wp.site/wp-content/uploads/dd-placeholders-m/dd-placeholder-m-office.webp)}
+  #dd-bg img[src*="dd-placeholder-backyard"],#dd-bg-study img[src*="dd-placeholder-backyard"]{content:url(https://donnysden.1wp.site/wp-content/uploads/dd-placeholders-m/dd-placeholder-m-backyard.webp)}
+}
+
+/* 21. "Come inside": the Front Door panel leaves, the shell arrives
+   (cross-document View Transitions; the background crossfade is rule 15) */
+@keyframes dd-vt-out{to{opacity:0;transform:translateY(10px) scale(.97)}}
+@keyframes dd-vt-in{from{opacity:0;transform:translateY(10px) scale(.97)}}
+@keyframes dd-vt-in-left{from{opacity:0;transform:translateX(-18px)}}
+@keyframes dd-vt-in-up{from{opacity:0;transform:translateY(18px)}}
+#dd-door{view-transition-name:dd-door}
+::view-transition-old(dd-door):only-child{animation:dd-vt-out 380ms var(--dd-ease) both}
+::view-transition-new(dd-door):only-child{animation:dd-vt-in 600ms var(--dd-ease) 300ms both}
+::view-transition-new(dd-sidebar):only-child{animation:dd-vt-in-left 650ms var(--dd-ease) 260ms both}
+::view-transition-new(dd-ornament):only-child,::view-transition-new(dd-mbar):only-child,::view-transition-new(dd-mtop):only-child{animation:dd-vt-in-up 650ms var(--dd-ease) 320ms both}
+::view-transition-old(dd-sidebar):only-child,::view-transition-old(dd-ornament):only-child,::view-transition-old(dd-mbar):only-child,::view-transition-old(dd-mtop):only-child{animation:dd-vt-out 300ms ease both}
+/* browsers without View Transitions: the panel fades before the Living Room loads */
+#dd-door{transition:opacity 280ms ease,transform 280ms ease}
+#dd-door.dd-leaving{opacity:0;transform:translateY(10px) scale(.97)}
+/* 22. Phones: size to the visible screen (iOS counts the hidden toolbars in 100vh) */
+[data-id="door-stage"]{min-height:100vh;min-height:100dvh}
+body:has(#dd-door){min-height:100dvh}
+
+/* 23. "Step inside" and section tiles glide the window down to a section */
+#dd-window{scroll-behavior:smooth}
+#dd-window [id]{scroll-margin-top:12px}
+
+/* 24. Coming soon signup form (same field look as the dialogs) */
+.dd-form .elementor-field-textual{background:rgba(255,255,255,.08);min-height:48px;color:var(--dd-ink)}
+.dd-form .elementor-field-textual::placeholder{color:rgba(246,241,234,.55)}
+.dd-form .elementor-button{min-height:48px;width:100%}
+.dd-form .elementor-message{font-size:14px;text-align:center}
+
+/* 25. Headline font: Bricolage Grotesque reads best set slightly tight */
+.dd-welcome,.dd-room-title{letter-spacing:-.02em}
+
+/* 26. Links page: "All my links" starts folded; tap to open */
+html.dd-js #dd-links-list:not(.dd-open){display:none}
+html:not(.dd-js) #dd-links-toggle{display:none}
+#dd-links-toggle{cursor:pointer;width:100%;font:inherit;text-align:start}
+#dd-links-chev{transform:rotate(90deg);transition:transform .2s ease}
+#dd-links-toggle[aria-expanded="true"] #dd-links-chev{transform:rotate(-90deg)}
+#dd-links-list.dd-open{animation:dd-fold .22s ease both}
+@keyframes dd-fold{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#dd-links-list.dd-open{animation:none}#dd-links-chev{transition:none}}
+
+/* 16. Reduced motion: no crossfade, slide or fade */
+@media (prefers-reduced-motion:reduce){
+  @view-transition{navigation:none}
+  #dd-door{transition:none}
+  .dd-js #dd-window{animation:none}
+  #dd-sidebar,#dd-window,#dd-mtop>:first-child{transition:none}
+}
+</style>
+<script id="dd-shell-early">(function(d){var r=d.documentElement;r.classList.add('dd-js');try{if(sessionStorage.getItem('dd-ui-hidden')==='1'){r.classList.add('dd-ui-hidden')}}catch(e){}})(document);</script>
+<script type="speculationrules">{"prerender":[{"where":{"href_matches":"/living-room/"},"eagerness":"eager"},{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/wp-*"}},{"not":{"selector_matches":".elementor-popup-modal a"}}]},"eagerness":"moderate"}]}</script>
